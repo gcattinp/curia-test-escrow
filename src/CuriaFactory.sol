@@ -26,7 +26,7 @@ contract CuriaFactory {
         emit EscrowCreated(msg.sender, address(newEscrow));
     }
 
-    function getAllEscrows() public view returns (CuriaEscrow[] memory) {
+    function getAllEscrows() external view returns (CuriaEscrow[] memory) {
         return escrows;
     }
 }
