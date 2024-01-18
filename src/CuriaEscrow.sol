@@ -49,12 +49,27 @@ contract CuriaEscrow {
     }
 
     /**
+     * @dev Ensures the function is called only by the arbiter.
+     */
+    modifier onlyArbiter() {
+      require(msg.sender == arbiter, "Only arbiter can call this function");
+      _;
+    }
+
+    /**
+     * @dev Ensures the function is called only by the depositor or the beneficiary.
+     */
+    modifier onlyParties() {
+      require(msg.sender == depositor || msg.sender == beneficiary, "Only the parties can perform this action");
+      _;
+    }
+
+    /**
      * @dev Allows the depositor or beneficiary to deposit funds into the escrow.
      * Deposits are only permitted if they are not disabled.
      */
-    function deposit() external payable {
+    function deposit() external payable onlyParties {
       require(!depositsDisabled, "No deposits allowed at this time");
-      require(msg.sender == depositor || msg.sender == beneficiary, "Only parties can deposit");
       deposits[msg.sender] += msg.value;
       emit DepositReceived(msg.sender, msg.value);
     }
@@ -62,8 +77,7 @@ contract CuriaEscrow {
     /**
      * @dev Allows the arbiter to disable further deposits into the escrow.
      */
-    function disableDeposits() public {
-      require(msg.sender == arbiter, "Only arbiter can lock deposits");
+    function disableDeposits() public onlyArbiter {
       depositsDisabled = true;
       emit DepositsDisabled();
     }
@@ -71,8 +85,7 @@ contract CuriaEscrow {
     /**
      * @dev Allows the arbiter to re-enable deposits into the escrow.
      */
-    function enableDeposits() public {
-      require(msg.sender == arbiter, "Only arbiter can unlock deposits");
+    function enableDeposits() public onlyArbiter {
       depositsDisabled = false;
       emit DepositsEnabled();
     }
@@ -83,8 +96,7 @@ contract CuriaEscrow {
      * @param amountToDepositor The amount to be transferred to the depositor.
      * @param amountToBeneficiary The amount to be transferred to the beneficiary.
      */
-    function settle(uint256 amountToDepositor, uint256 amountToBeneficiary) public {
-      require(msg.sender == arbiter, "Only arbiter can approve");
+    function settle(uint256 amountToDepositor, uint256 amountToBeneficiary) public onlyArbiter {
       require(depositsDisabled, "Deposits must be locked for settlement");
       require(amountToDepositor <= deposits[depositor], "Insufficient balance for depositor");
       require(amountToBeneficiary <= deposits[beneficiary], "Insufficient balance for beneficiary");
@@ -107,10 +119,9 @@ contract CuriaEscrow {
     /**
      * @dev Allows either the depositor or beneficiary to withdraw their funds if the escrow is canceled during the grace period.
      */
-    function gracePeriodWithdraw() public {
+    function gracePeriodWithdraw() public onlyParties {
       require(block.timestamp <= gracePeriodEnd, "Grace period has ended");
       require(block.timestamp < escrowDeadline, "Escrow deadline has passed");
-      require(msg.sender == beneficiary || msg.sender == depositor,"Only the parties can withdraw during grace period");
 
       uint256 depositorRefund = deposits[depositor];
       uint256 beneficiaryRefund = deposits[beneficiary];
@@ -133,8 +144,7 @@ contract CuriaEscrow {
     /**
      * @dev Allows either the depositor or beneficiary to withdraw their funds if the escrow deadline has passed and the escrow has not been settled.
      */
-    function withdrawAfterDeadline() public {
-      require(msg.sender == beneficiary || msg.sender == depositor,"Only the parties can withdraw after the deadline ends");
+    function withdrawAfterDeadline() public onlyParties {
       require(block.timestamp >= escrowDeadline, "Deadline has not passed");
 
       uint256 depositorRefund = deposits[depositor];
