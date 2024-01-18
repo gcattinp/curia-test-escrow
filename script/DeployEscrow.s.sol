@@ -2,20 +2,20 @@
 pragma solidity ^0.8.19;
 
 import {Script} from "forge-std/Script.sol";
-import {CuriaEscrow} from "../src/CuriaEscrow.sol";
+import {CuriaFactory} from "../src/CuriaFactory.sol"; // Corrected this line
 import "forge-std/console.sol";
 
-contract DeployEscrow is Script {
-    function run() external returns (CuriaEscrow) {
+contract DeployEscrowFactory is Script { // Renamed for clarity
+    function run() external returns (CuriaFactory) {
         uint256 privateKey = vm.envUint("PRIVATE_KEY");
         address account_deployer = vm.addr(privateKey);
 
         console.log("Deployer Account:", account_deployer);
 
         vm.startBroadcast(privateKey);
-        CuriaEscrow curiaEscrow = new CuriaEscrow();
+        CuriaFactory curiaFactory = new CuriaFactory();
         vm.stopBroadcast();
 
-        return curiaEscrow;
+        return curiaFactory;
     }
 }
