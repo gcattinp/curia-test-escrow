@@ -5,24 +5,21 @@ pragma solidity ^0.8.19;
  * @title CuriaEscrow
  * @dev This contract implements an escrow mechanism with a grace period and deadline.
  * The depositor and beneficiary can deposit funds, and the arbiter can disable further
- * deposits and settle the escrow. Parties can withdraw funds during the grace period
- * or after the deadline.
+ * deposits and settle the escrow.
  */
 contract CuriaEscrow {
   address public depositor;
   address public beneficiary;
   address public arbiter;
   uint256 public escrowDeadline;
-  uint256 public gracePeriodEnd;
   bool public depositsDisabled;
   uint256 public totalDeposits;
 
   mapping(address => uint256) public deposits;
 
-  event DepositReceived(address depositor, uint256 amount);
+  event DepositReceived(address indexed depositor, uint256 amount, uint256 totalDeposits);
   event Withdrawn(address indexed to, uint256 amount);
   event Settled(uint256 amountDepositor, uint256 amountBeneficiary);
-  event GracePeriodWithdrawal(uint256 amountDepositor, uint256 amountBeneficiary);
   event DepositsDisabled();
   event DepositsEnabled();
 
@@ -49,20 +46,17 @@ contract CuriaEscrow {
    * @param _beneficiary The address of the beneficiary.
    * @param _arbiter The address of the arbiter.
    * @param _deadlineInHours The deadline of the escrow in hours.
-   * @param _gracePeriodInHours The end of the grace period in hours.
    */
   constructor(
     address _depositor,
     address _beneficiary,
     address _arbiter,
-    uint256 _deadlineInHours,
-    uint256 _gracePeriodInHours
+    uint256 _deadlineInHours
     ){
     depositor = _depositor;
     beneficiary = _beneficiary;
     arbiter = _arbiter;
     escrowDeadline = block.timestamp + _deadlineInHours * 1 hours;
-    gracePeriodEnd = block.timestamp + _gracePeriodInHours * 1 hours;
     depositsDisabled = false;
     totalDeposits = 0;
   }
@@ -86,8 +80,10 @@ contract CuriaEscrow {
   function deposit() external payable onlyParties {
     require(!depositsDisabled, "No deposits allowed at this time");
     deposits[msg.sender] += msg.value;
-    emit DepositReceived(msg.sender, msg.value);
+    totalDeposits += msg.value;
+    emit DepositReceived(msg.sender, msg.value, totalDeposits);
   }
+
 
   /**
    * @dev Allows the arbiter to disable further deposits into the escrow.
@@ -127,28 +123,6 @@ contract CuriaEscrow {
     assert(address(this).balance == 0);
 
     emit Settled(amountToDepositor, amountToBeneficiary);
-  }
-
-
-  /**
-   * @dev Allows either the depositor or beneficiary to withdraw their funds if the escrow is canceled during the grace period.
-   */
-  function gracePeriodWithdraw() public onlyParties {
-    require(block.timestamp <= gracePeriodEnd, "Grace period has ended");
-    require(block.timestamp < escrowDeadline, "Escrow deadline has passed");
-
-    uint256 depositorRefund = deposits[depositor];
-    uint256 beneficiaryRefund = deposits[beneficiary];
-
-    if (depositorRefund > 0) {
-      _withdrawFunds(depositor, depositorRefund);
-    }
-
-    if (beneficiaryRefund > 0) {
-      _withdrawFunds(beneficiary, beneficiaryRefund);
-    }
-
-    emit GracePeriodWithdrawal(depositorRefund, beneficiaryRefund);
   }
 
     /**

@@ -5,7 +5,7 @@ import {Script} from "forge-std/Script.sol";
 import {CuriaFactory} from "../src/CuriaFactory.sol"; // Corrected this line
 import "forge-std/console.sol";
 
-contract DeployEscrowFactory is Script { // Renamed for clarity
+contract DeployEscrowFactory is Script {
     function run() external returns (CuriaFactory) {
         uint256 privateKey = vm.envUint("PRIVATE_KEY");
         address account_deployer = vm.addr(privateKey);

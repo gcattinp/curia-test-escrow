@@ -12,15 +12,13 @@ contract CuriaFactory {
     function createEscrow(
         address _beneficiary,
         address _arbiter,
-        uint256 _deadlineInHours,
-        uint256 _gracePeriodInHours
+        uint256 _deadlineInHours
     ) public {
         CuriaEscrow newEscrow = new CuriaEscrow(
             msg.sender,
             _beneficiary,
             _arbiter,
-            _deadlineInHours,
-            _gracePeriodInHours
+            _deadlineInHours
         );
         escrows.push(newEscrow);
         emit EscrowCreated(msg.sender, address(newEscrow));
